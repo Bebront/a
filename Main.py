@@ -23,30 +23,38 @@ def load_image(name, color_key=None):
 class Tank(pygame.sprite.Sprite):
     def __init__(self, radius, x, y):
         super().__init__(all_sprites)
-        self.image = load_image('a1.png', -1)
+        self.image = load_image('tank.png', -1)
         self.rect = pygame.Rect(x, y, 2 * radius, 2 * radius)
         self.x, self.y = x, y
-        self.speed = random.choice([1, 2, 3])
+        self.speed = random.choice([10, 20, 30])
         self.image = pygame.transform.rotate(self.image, -90)
         self.direction = 90
-        if self.speed == 1:
-            self.bullet_speed = 3
-        elif self.speed == 2:
-            self.bullet_speed = 2
+        if self.speed == 10:
+            self.bullet_speed = 300
+        elif self.speed == 20:
+            self.bullet_speed = 200
         else:
-            self.bullet_speed = 1
+            self.bullet_speed = 100
 
     def update(self, direction):
         angles = {
-            pygame.K_UP: (0, self.y, 1),
-            pygame.K_DOWN: (180, self.y, -1),
-            pygame.K_RIGHT: (90, self.x, 1),
-            pygame.K_LEFT: (270, self.x, -1)
+            pygame.K_UP: 0,
+            pygame.K_DOWN: 180,
+            pygame.K_RIGHT: 90,
+            pygame.K_LEFT: 270
         }
-        self.image = pygame.transform.rotate(self.image, (self.direction - angles[direction][0]) % 360)
-        angles[direction][1] += self.speed * angles[direction][2]
+        if not direction in angles:
+            return
+        self.image = pygame.transform.rotate(self.image, (self.direction - angles[direction]) % 360)
+        if angles[direction] == 0:
+            self.rect = self.rect.move(0, -self.speed)
+        if angles[direction] == 180:
+            self.rect = self.rect.move(0, self.speed)
+        if angles[direction] == 90:
+            self.rect = self.rect.move(self.speed, 0)
+        if angles[direction] == 270:
+            self.rect = self.rect.move(-self.speed, 0)
         print(self.y, self.x)
-        self.rect = self.rect.move(self.x, self.y)
         self.direction = angles[direction]
         # if pygame.sprite.spritecollideany(self, horizontal_borders):
         #     self.vy = -self.vy
@@ -84,15 +92,22 @@ for i in range(1):
     Tank(20, 100, 100)
 
 clock = pygame.time.Clock()
-
+flag = False
+event_key = '78'
 running = True
 while running:
+    if flag is True:
+        all_sprites.update(event_key)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         elif event.type == pygame.KEYDOWN:
+            flag = True
+            event_key = event.key
             all_sprites.update(event.key)
-    fon = pygame.transform.scale(load_image('a.jpg'), size)
+        elif event.type == pygame.KEYUP:
+            flag = False
+    fon = pygame.transform.scale(load_image('Fon.jpg'), size)
     screen.blit(fon, (0, 0))
     all_sprites.draw(screen)
     pygame.display.flip()
