@@ -33,22 +33,26 @@ def tank_move(tank, movement, speed):
     x, y = tank.x, tank.y
     if movement == 0:
         if level_map[(y - speed) // 100 + 1][x // 100 + 1] == "." and\
-                level_map[(y - speed) // 100 + 1][x // 100 + 2] == ".":
+                level_map[(y - speed) // 100 + 1][(x - 10) // 100 + 2] == "." and \
+                (abs(Tank_1.y - speed - Tank_2.y) > 100 or abs(Tank_1.x - Tank_2.x) > 100):
             tank.rect = tank.rect.move(0, -speed)
             tank.y -= speed
     elif movement == 180:
-        if level_map[y // 100 + 2][x // 100 + 1] == "." and\
-                level_map[y // 100 + 2][x // 100 + 2] == ".":
+        if level_map[(y + speed) // 100 + 2][x // 100 + 1] == "." and\
+                level_map[y // 100 + 2][(x - 10) // 100 + 2] == "." and \
+                (abs(Tank_1.y + speed - Tank_2.y) > 100 or abs(Tank_1.x - Tank_2.x) > 100):
             tank.rect = tank.rect.move(0, speed)
             tank.y += speed
     elif movement == 270:
         if level_map[y // 100 + 1][(x - speed) // 100 + 1] == "." and\
-                level_map[y // 100 + 2][(x - speed) // 100 + 1] == ".":
+                level_map[(y - 10) // 100 + 2][(x - speed) // 100 + 1] == "." and\
+                (abs(Tank_1.x + speed - Tank_2.x) > 100 or abs(Tank_1.y - Tank_2.y) > 100):
             tank.rect = tank.rect.move(-speed, 0)
             tank.x -= speed
     elif movement == 90:
-        if level_map[y // 100 + 1][x // 100 + 2] == "." and\
-                level_map[y // 100 + 2][x // 100 + 2] == ".":
+        if level_map[y // 100 + 1][(x + speed) // 100 + 2] == "." and\
+                level_map[(y - 10) // 100 + 2][x // 100 + 2] == "." and \
+                (abs(Tank_1.x - speed - Tank_2.x) > 100 or abs(Tank_1.y - Tank_2.y) > 100):
             tank.rect = tank.rect.move(speed, 0)
             tank.x += speed
 
@@ -69,11 +73,11 @@ def generate_level(level):
                 Tile(x, y)
             elif level[y][x] == '2':
                 print(x, y)
-                tank_2 = Tank(radius=50, x_tank=x * 100, y_tank=y * 100, rotate=270, keyboard='wasd')
+                tank_2 = Tank(radius=45, x_tank=x * 100, y_tank=y * 100, rotate=270, keyboard='wasd', image='tank_2.png')
                 level[y][x] = "."
             elif level[y][x] == '1':
                 print(x, y)
-                tank_1 = Tank(radius=50, x_tank=x * 100, y_tank=y * 100, rotate=90, keyboard='udlr')
+                tank_1 = Tank(radius=45, x_tank=x * 100, y_tank=y * 100, rotate=90, keyboard='udlr', image='tank.png')
                 level[y][x] = "."
     return tank_1, tank_2, x, y
 
@@ -87,9 +91,9 @@ class Tile(pygame.sprite.Sprite):
 
 
 class Tank(pygame.sprite.Sprite):
-    def __init__(self, radius, x_tank, y_tank, rotate, keyboard):
+    def __init__(self, radius, x_tank, y_tank, rotate, keyboard, image):
         super().__init__(all_sprites)
-        self.image = load_image('tank.png', -1)
+        self.image = load_image(image, -1)
         self.rect = pygame.Rect(x_tank, y_tank, 2 * radius, 2 * radius)
         self.x, self.y = x_tank, y_tank
         self.speed = random.choice([1, 2, 3])
@@ -143,7 +147,7 @@ flag_1 = False
 flag_2 = False
 event_key_2 = '78'
 event_key_1 = '56'
-level_map = load_level("tanks_map.map")
+level_map = load_level(random.choice(("tanks_map.map", "tank_map_1.map", "tank_map_2.map")))
 Tank_1, Tank_2, max_x, max_y = generate_level(level_map)
 running = True
 while running:
