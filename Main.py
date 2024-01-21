@@ -29,12 +29,69 @@ def if_control_key(key):
         return 0
 
 
+def tank_move(tank, movement, speed):
+    x, y = tank.x, tank.y
+    if movement == 0:
+        if level_map[(y - speed) // 100 + 1][x // 100 + 1] == "." and\
+                level_map[(y - speed) // 100 + 1][x // 100 + 2] == ".":
+            tank.rect = tank.rect.move(0, -speed)
+            tank.y -= speed
+    elif movement == 180:
+        if level_map[y // 100 + 2][x // 100 + 1] == "." and\
+                level_map[y // 100 + 2][x // 100 + 2] == ".":
+            tank.rect = tank.rect.move(0, speed)
+            tank.y += speed
+    elif movement == 270:
+        if level_map[y // 100 + 1][(x - speed) // 100 + 1] == "." and\
+                level_map[y // 100 + 2][(x - speed) // 100 + 1] == ".":
+            tank.rect = tank.rect.move(-speed, 0)
+            tank.x -= speed
+    elif movement == 90:
+        if level_map[y // 100 + 1][x // 100 + 2] == "." and\
+                level_map[y // 100 + 2][x // 100 + 2] == ".":
+            tank.rect = tank.rect.move(speed, 0)
+            tank.x += speed
+
+
+def load_level(filename):
+    filename = "data/" + filename
+    with open(filename, 'r') as mapFile:
+        level_map = [line.strip() for line in mapFile]
+    max_width = max(map(len, level_map))
+    return list(map(lambda x: list(x.ljust(max_width, '.')), level_map))
+
+
+def generate_level(level):
+    x, y, tank_1, tank_2 = None, None, None, None
+    for y in range(len(level)):
+        for x in range(len(level[y])):
+            if level[y][x] == '#':
+                Tile(x, y)
+            elif level[y][x] == '2':
+                print(x, y)
+                tank_2 = Tank(radius=50, x_tank=x * 100, y_tank=y * 100, rotate=270, keyboard='wasd')
+                level[y][x] = "."
+            elif level[y][x] == '1':
+                print(x, y)
+                tank_1 = Tank(radius=50, x_tank=x * 100, y_tank=y * 100, rotate=90, keyboard='udlr')
+                level[y][x] = "."
+    return tank_1, tank_2, x, y
+
+
+class Tile(pygame.sprite.Sprite):
+    def __init__(self, pos_x, pos_y):
+        super().__init__(all_sprites)
+        self.image = load_image('wall.png')
+        self.rect = self.image.get_rect().move(
+            100 * (pos_x - 1), 100 * (pos_y - 1))
+
+
 class Tank(pygame.sprite.Sprite):
-    def __init__(self, radius, x, y, rotate, keyboard):
+    def __init__(self, radius, x_tank, y_tank, rotate, keyboard):
         super().__init__(all_sprites)
         self.image = load_image('tank.png', -1)
-        self.rect = pygame.Rect(x, y, 2 * radius, 2 * radius)
-        self.x, self.y = x, y
+        self.rect = pygame.Rect(x_tank, y_tank, 2 * radius, 2 * radius)
+        self.x, self.y = x_tank, y_tank
         self.speed = random.choice([1, 2, 3])
         self.image = pygame.transform.rotate(self.image, -rotate)
         self.direction = rotate
@@ -68,29 +125,9 @@ class Tank(pygame.sprite.Sprite):
             self.image = pygame.transform.rotate(self.image, (self.direction - self.angles[direction]) % 360)
         else:
             self.image = pygame.transform.rotate(self.image, (self.direction - self.angles[direction]) % 360)
-        if self.angles[direction] == 0:
-            self.rect = self.rect.move(0, -self.speed)
-        if self.angles[direction] == 180:
-            self.rect = self.rect.move(0, self.speed)
-        if self.angles[direction] == 90:
-            self.rect = self.rect.move(self.speed, 0)
-        if self.angles[direction] == 270:
-            self.rect = self.rect.move(-self.speed, 0)
+        tank_move(self, self.angles[direction], self.speed)
         print(self.y, self.x)
         self.direction = self.angles[direction]
-
-
-class Border(pygame.sprite.Sprite):
-    def __init__(self, x1, y1, x2, y2):
-        super().__init__(all_sprites)
-        if x1 == x2:
-            self.add(vertical_borders)
-            self.image = pygame.Surface([1, y2 - y1])
-            self.rect = pygame.Rect(x1, y1, 1, y2 - y1)
-        else:
-            self.add(horizontal_borders)
-            self.image = pygame.Surface([x2 - x1, 1])
-            self.rect = pygame.Rect(x1, y1, x2 - x1, 1)
 
 
 all_sprites = pygame.sprite.Group()
@@ -98,22 +135,16 @@ all_sprites = pygame.sprite.Group()
 horizontal_borders = pygame.sprite.Group()
 vertical_borders = pygame.sprite.Group()
 
-size = width, height = 1920, 1030
+size = width, height = 1900, 1000
 screen = pygame.display.set_mode(size)
-
-Border(5, 5, width - 5, 5)
-Border(5, height - 5, width - 5, height - 5)
-Border(5, 5, 5, height - 5)
-Border(width - 5, 5, width - 5, height - 5)
-
-Tank_1 = Tank(10, 100, 100, 90, 'udlr')
-Tank_2 = Tank(10, 600, 800, 270, 'wasd')
 
 clock = pygame.time.Clock()
 flag_1 = False
 flag_2 = False
 event_key_2 = '78'
 event_key_1 = '56'
+level_map = load_level("tanks_map.map")
+Tank_1, Tank_2, max_x, max_y = generate_level(level_map)
 running = True
 while running:
     if flag_1 is True:
