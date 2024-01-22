@@ -86,6 +86,7 @@ def generate_level(level):
     return tank_1, tank_2, x, y
 
 
+
 class Tile(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
         super().__init__(all_sprites)
