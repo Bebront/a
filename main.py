@@ -4,6 +4,7 @@ import pygame
 import time
 
 
+
 tank_1_alife, tank_2_alife = True, True
 
 
