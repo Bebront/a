@@ -1,6 +1,10 @@
 import os
 import random
 import pygame
+import time
+
+
+tank_1_alife, tank_2_alife = True, True
 
 
 def load_image(name, color_key=None):
@@ -38,8 +42,8 @@ def tank_move(tank, movement, speed):
             tank.rect = tank.rect.move(0, -speed)
             tank.y -= speed
     elif movement == 180:
-        if level_map[(y + speed) // 100 + 2][x // 100 + 1] == "." and\
-                level_map[y // 100 + 2][(x - 10) // 100 + 2] == "." and \
+        if level_map[y // 100 + 2][x // 100 + 1] == "." and\
+                level_map[(y - speed) // 100 + 2][(x - 10) // 100 + 2] == "." and \
                 (abs(Tank_1.y + speed - Tank_2.y) > 100 or abs(Tank_1.x - Tank_2.x) > 100):
             tank.rect = tank.rect.move(0, speed)
             tank.y += speed
@@ -50,7 +54,7 @@ def tank_move(tank, movement, speed):
             tank.rect = tank.rect.move(-speed, 0)
             tank.x -= speed
     elif movement == 90:
-        if level_map[y // 100 + 1][(x + speed) // 100 + 2] == "." and\
+        if level_map[y // 100 + 1][(x - speed) // 100 + 2] == "." and\
                 level_map[(y - 10) // 100 + 2][x // 100 + 2] == "." and \
                 (abs(Tank_1.x - speed - Tank_2.x) > 100 or abs(Tank_1.y - Tank_2.y) > 100):
             tank.rect = tank.rect.move(speed, 0)
@@ -90,9 +94,62 @@ class Tile(pygame.sprite.Sprite):
             100 * (pos_x - 1), 100 * (pos_y - 1))
 
 
+class Vzriv(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__(all_sprites)
+        self.image = load_image('vzriv.png', -1)
+        self.rect = self.image.get_rect().move(x, y)
+
+
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, x, y, image, direction, speed, group):
+        super().__init__(group)
+        self.direction = direction
+        self.speed = speed
+        self.group = group
+        sound1 = pygame.mixer.Sound('data/bullet_sound.ogg')
+        sound1.play()
+        self.image = load_image(image, -1)
+        self.rect = pygame.Rect(x, y, 30, 30)
+
+    def update(self):
+        if self.direction == 0:
+            self.rect = self.rect.move(0, -self.speed)
+        if self.direction == 180:
+            self.rect = self.rect.move(0, self.speed)
+        if self.direction == 90:
+            self.rect = self.rect.move(self.speed, 0)
+        if self.direction == 270:
+            self.rect = self.rect.move(-self.speed, 0)
+        if pygame.sprite.spritecollideany(self, all_sprites):
+            self.kill()
+        if self.group == shard_1:
+            if pygame.sprite.spritecollideany(self, shard_2):
+                self.kill()
+                shard_2.sprites()[0].kill()
+            if pygame.sprite.spritecollideany(self, tanks):
+                Vzriv(Tank_2.x, Tank_2.y)
+                Tank_2.kill()
+                global tank_2_alife
+                tank_2_alife = False
+                self.kill()
+                time.sleep(1)
+        elif self.group == shard_2:
+            if pygame.sprite.spritecollideany(self, shard_1):
+                self.kill()
+                shard_1.sprites()[0].kill()
+            if pygame.sprite.spritecollideany(self, tanks):
+                Vzriv(Tank_1.x, Tank_1.y)
+                Tank_1.kill()
+                global tank_1_alife
+                tank_1_alife = False
+                self.kill()
+                time.sleep(1)
+
+
 class Tank(pygame.sprite.Sprite):
     def __init__(self, radius, x_tank, y_tank, rotate, keyboard, image):
-        super().__init__(all_sprites)
+        super().__init__(tanks)
         self.image = load_image(image, -1)
         self.rect = pygame.Rect(x_tank, y_tank, 2 * radius, 2 * radius)
         self.x, self.y = x_tank, y_tank
@@ -135,9 +192,9 @@ class Tank(pygame.sprite.Sprite):
 
 
 all_sprites = pygame.sprite.Group()
-
-horizontal_borders = pygame.sprite.Group()
-vertical_borders = pygame.sprite.Group()
+tanks = pygame.sprite.Group()
+shard_1 = pygame.sprite.Group()
+shard_2 = pygame.sprite.Group()
 
 size = width, height = 1900, 1000
 screen = pygame.display.set_mode(size)
@@ -149,12 +206,17 @@ event_key_2 = '78'
 event_key_1 = '56'
 level_map = load_level(random.choice(("tanks_map.map", "tank_map_1.map", "tank_map_2.map")))
 Tank_1, Tank_2, max_x, max_y = generate_level(level_map)
+pygame.mixer.init()
+pygame.mixer.music.load('data/SL.ogg')
+pygame.mixer.music.play(-1)
 running = True
 while running:
     if flag_1 is True:
-        all_sprites.update(event_key_1)
+        tanks.update(event_key_1)
     if flag_2 is True:
-        all_sprites.update(event_key_2)
+        tanks.update(event_key_2)
+    shard_1.update()
+    shard_2.update()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -165,7 +227,27 @@ while running:
             elif if_control_key(event.key) == 2:
                 flag_2 = True
                 event_key_2 = event.key
-            all_sprites.update(event.key)
+            if event.key == pygame.K_e:
+                if tank_2_alife:
+                    if Tank_2.direction == 0:
+                        Bullet(Tank_2.x + 30, Tank_2.y - 50, 'Cacodemon.png', 0, Tank_2.bullet_speed, shard_2)
+                    if Tank_2.direction == 180:
+                        Bullet(Tank_2.x + 30, Tank_2.y + 80, 'Cacodemon.png', 180, Tank_2.bullet_speed, shard_2)
+                    if Tank_2.direction == 90:
+                        Bullet(Tank_2.x + 100, Tank_2.y + 25, 'Cacodemon.png', 90, Tank_2.bullet_speed, shard_2)
+                    if Tank_2.direction == 270:
+                        Bullet(Tank_2.x - 30, Tank_2.y + 25, 'Cacodemon.png', 270, Tank_2.bullet_speed, shard_2)
+            if event.key == pygame.K_RCTRL:
+                if tank_1_alife:
+                    if Tank_1.direction == 0:
+                        Bullet(Tank_1.x + 30, Tank_1.y - 50, 'virus.png', 0, Tank_1.bullet_speed, shard_1)
+                    if Tank_1.direction == 180:
+                        Bullet(Tank_1.x + 30, Tank_1.y + 80, 'virus.png', 180, Tank_1.bullet_speed, shard_1)
+                    if Tank_1.direction == 90:
+                        Bullet(Tank_1.x + 100, Tank_1.y + 25, 'virus.png', 90, Tank_1.bullet_speed, shard_1)
+                    if Tank_1.direction == 270:
+                        Bullet(Tank_1.x - 30, Tank_1.y + 25, 'virus.png', 270, Tank_1.bullet_speed, shard_1)
+            tanks.update(event.key)
         elif event.type == pygame.KEYUP:
             if if_control_key(event.key) == 1:
                 flag_1 = False
@@ -174,6 +256,9 @@ while running:
     fon = pygame.transform.scale(load_image('Fon.jpg'), size)
     screen.blit(fon, (0, 0))
     all_sprites.draw(screen)
+    tanks.draw(screen)
+    shard_1.draw(screen)
+    shard_2.draw(screen)
     pygame.display.flip()
     clock.tick(50)
 pygame.quit()
